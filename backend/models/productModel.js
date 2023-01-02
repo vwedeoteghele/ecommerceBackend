@@ -24,8 +24,9 @@ const productSchema = mongoose.Schema(
     },
     model: String,
     color: String,
-    weight: Number
-
+    weight: Number,
+    images: Array,
+    thumbnail: String
   },
   {
     timestamps: true,
