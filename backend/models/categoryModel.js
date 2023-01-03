@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
+const ProductModel = require('../models/productModel')
+
 
 const categorySchema = mongoose.Schema(
   {
     categoryName: {
       type: String,
-      required: true
+      required: [true, "Please provide a category name"]
     },
     featured: {
       type: Boolean,

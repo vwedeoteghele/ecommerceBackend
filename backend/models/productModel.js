@@ -10,10 +10,12 @@ const productSchema = mongoose.Schema(
       type: String,
       required: [true, "Add a description to the product"],
     },
-    productCategory: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category"
-    },
+    productCategory: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category"
+      }
+    ],
     price: {
       type: Number,
       required: true
@@ -33,4 +35,5 @@ const productSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Product", productSchema);
+const ProductModel = mongoose.model("Product", productSchema);
+module.exports = ProductModel

@@ -11,7 +11,7 @@ class ProductController {
       }
 
       const product = new ProductModel({productName, description, productCategory, price, quantity, model, color, weight})
-      product = await product.save()
+      await product.save()
 
       res.status(200).json(product)
 
