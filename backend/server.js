@@ -8,6 +8,7 @@ const {errorHandler} = require("./middleware/errorHandler")
 const productRouter = require('./routes/productRouter.js')
 const categoryRouter = require('./routes/categoryRouter.js')
 const reviewRouter = require('./routes/reviewRouter')
+const userRouter = require('./routes/userRouter.js')
 
 connectDB();
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({extended: false}));
 
 app.use('/product', productRouter)
 app.use('/category', categoryRouter)
+app.use("/user", userRouter)
 // app.use('/review', reviewRouter)
 
 app.use(errorHandler);

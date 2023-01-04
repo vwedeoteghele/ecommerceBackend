@@ -2,6 +2,10 @@ const ProductModel = require("../models/productModel")
 const { ObjectId } = require('mongodb');
 
 class ProductController {
+//delete product from category
+//add product to cart, remove product from cart
+//add product to wishlist , remove product from wihlist
+//
 
   async createProduct(req, res, next) {
     try {
