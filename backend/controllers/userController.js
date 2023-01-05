@@ -46,6 +46,46 @@ class UserController {
       next(error)
     }
 
+
+  }
+
+
+  async loginUser(req, res, next) {
+
+    try {
+      
+      const {email, password} = req.body
+      if(!(email && password)) {
+        return res.status(400).send("email and passowrd are required")
+
+      }
+
+      //check if the user exist
+      const userExists = await User.findOne({email: email.toLowerCase().trim()})
+
+      if(!userExists) {
+        return res.status(400).send("provide correct email and password")
+      }
+
+      //if user exists in db, compare password in db with input password
+      const match = await bcrypt.compare(password, userExists.password)
+      if(!match) {
+        return res.status(400).send("provide correct email and password")
+      }
+
+      //if email and password are correct, create a signed token for the user
+      const token = jwt.sign({
+        user_id: userExists._id,
+        email
+      }, process.env.TOKEN_KEY , { expiresIn: '2h' });
+
+      userExists.token = token
+      res.status(201).json(userExists)
+
+    } catch (error) {
+      next(error)
+    }
+
   }
 }
 
