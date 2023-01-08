@@ -3,6 +3,7 @@ const { ObjectId } = require('mongodb');
 
 class ProductController {
 //delete product from category
+//delete category - delete all ocurrence of that category in all products
 //add product to cart, remove product from cart
 //add product to wishlist , remove product from wihlist
 //
