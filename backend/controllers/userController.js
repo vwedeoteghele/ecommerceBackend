@@ -2,6 +2,7 @@ const User = require('../models/userModel')
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserVerification = require('../models/userVerification')
+const ResetPassword = require("./../models/passwordReset")
 const {v4: uuidv4} = require('uuid')
 require('dotenv').config()
 const path = require('path')
@@ -50,6 +51,46 @@ class UserController {
     }
   }
 
+  //reset email function
+  async sendResetEmail({_id, email}, url, res) {
+    const resetString = uuidv4() + _id
+    try {
+      await ResetPassword.deleteMany({userId: _id})
+
+      const mailOptions = {
+        from: process.env.AUTH_EMAIL,
+        to: email,
+        subject: "Reset your password",
+        html: `<p>We heard you lost access to your accunt, we got your back on this. Click on the link below to reset your password</p><p>This link <b>expires in 60 minutes</b></p><p>Press <a href=${url + "/" + _id + "/" + resetString}>Here</a> to proceed</p>`
+       }
+
+       const hashedString = await bcrypt.hash(resetString, 10)
+       const newPasswordReset = new ResetPassword({
+        userId: _id,
+        resetString: hashedString,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 3600000
+       })
+       newPasswordReset.save()
+       await transporter.sendMail(mailOptions)
+
+       res.status(200).json({
+        status: "PENDING",
+        message: "reset password email sent"
+       })
+
+
+
+    } catch (error) {
+      console.log(error)
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "Something went wrong"
+      })
+    }
+  }
+
   async registerUser(req, res) {
     
     try {
@@ -72,8 +113,9 @@ class UserController {
       })
 
       await user.save()
-
-      const sendEmailToVerify = await this.sendVerificationMail(user)
+      // console.log(this.sendVerificationMail);
+      const userController = new UserController()
+      const sendEmailToVerify = await userController.sendVerificationMail(user)
       if(sendEmailToVerify) {
         res.status(200).json({
           status: "PENDING",
@@ -135,7 +177,36 @@ class UserController {
       }
       
     } catch (error) {
-      console.log(error);
+      console.log(error)
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "Something went wrong"
+      })
+    }
+  }
+
+  //reset password 
+  async requestPassword(req, res) {
+    try {
+      const {email} = req.body
+      console.log(email);
+      const redirectUrl = 'http://localhost:3000/rpassword'
+      const userExist = await User.findOne({email})
+      console.log(userExist);
+      if(!userExist || !userExist.verified) {
+        return res.status(400)
+        .json({
+          status: "FAILED",
+          message: "User does not  exist or user is not verified"
+        })
+      }
+      const userClass = new UserController()
+      console.log(userClass.sendResetEmail);
+     const sentEmail = await userClass.sendResetEmail(userExist, redirectUrl, res)
+      
+    } catch (error) {
+      console.log(error)
       res.status(400)
       .json({
         status: "FAILED",
@@ -180,6 +251,43 @@ class UserController {
       next(error)
     }
 
+  }
+
+  async resetPassword(req, res) {
+    try {
+
+      const {userId, resetString, newPassword} = req.body
+      const resetStringExists =  await ResetPassword.findOne({userId})
+
+      const storedString = resetStringExists ? resetStringExists.resetString : ""
+      const bcryptResult = await bcrypt.compare(resetString, storedString)
+      if(resetStringExists && bcryptResult && resetStringExists.expiresAt > Date.now()) {
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        await User.updateOne({_id: userId}, {password: hashedPassword})
+        await ResetPassword.deleteMany({userId})
+        res.status(200)
+        .json({
+          status: "SUCCESS",
+          message: "password has successfully been updated"
+        })
+      } else {
+        await ResetPassword.deleteOne({userId})
+        res.status(400)
+        .json({
+          status: "FAILED",
+          message: "Reset password link has expired or invalid operation"
+        })
+      }
+      
+    } catch (error) {
+      console.log(error)
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "Something went wrong"
+      })
+    }
   }
 }
 
