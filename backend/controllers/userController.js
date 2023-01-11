@@ -14,6 +14,7 @@ class UserController {
   //email verification
   //social login
   //birthday message
+  //refresh token jwt
 
   async sendVerificationMail({email, _id}) {
     try {
@@ -98,7 +99,10 @@ class UserController {
       if(!(email && password && firstName && lastName)) {
         res.status(400).send("All input is required");
       }
-
+      const cart =   {
+        cartTotal: 0,
+        cartItems: []
+      }
       const oldUser = await User.findOne({email: email.toLowerCase().trim()})
       if(oldUser) {
         return res.status(409).send('user already exists, Please login')
@@ -109,7 +113,8 @@ class UserController {
         firstName,
         lastName,
         email: email.toLowerCase().trim(),
-        password: encryptedPassword
+        password: encryptedPassword,
+        cart
       })
 
       await user.save()

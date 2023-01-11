@@ -16,6 +16,10 @@ const productSchema = mongoose.Schema(
         ref: "Category"
       }
     ],
+    available: {
+      type: Boolean,
+      default: true
+    },
     price: {
       type: Number,
       required: true

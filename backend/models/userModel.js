@@ -24,7 +24,28 @@ const userSchema = new mongoose.Schema({
   verified: {
     type: Boolean,
     default: false
-  }
+  },
+  role: {
+    type: String,
+    enum : ['customer','admin'],
+    default: 'customer'
+  },
+  cart: {
+    cartTotal: Number,
+    cartItems: [
+      {
+        itemQuantity: Number,
+        item: {
+          type:  mongoose.Types.ObjectId,
+          ref: 'Product'
+        }
+      }     
+    ]
+  },
+  wishList: [{
+    type:  mongoose.Types.ObjectId,
+    ref: 'Product'
+  }]
 }, 
 {
   timestamps: true,
