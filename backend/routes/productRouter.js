@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const ProductController = require("../controllers/productController")
-const {createProduct, getProduct, getProductByID, updateProduct, deleteProduct, addProductToCart, removeProductFromCart} = new ProductController()
+const {createProduct, getProduct, getProductByID, updateProduct, deleteProduct, addProductToCart, removeProductFromCart, addProductToWshlist, removeProductFromWishlist, createCouponCode} = new ProductController()
 
 
 /**
@@ -19,4 +19,9 @@ router.put("/:id", updateProduct)
 router.delete("/:id", deleteProduct)
 router.post('/addToCart/:userId', addProductToCart)
 router.post('/removeFromCart/:userID', removeProductFromCart)
+router.post('/addToWishlist/:userID', addProductToWshlist)
+router.post('/removeFromWishList/:userID', removeProductFromWishlist)
+router.post('/createCoupon', createCouponCode)
 module.exports = router;
+
+
