@@ -374,10 +374,11 @@ class ProductController {
     //during checkout, validity of coupon code is also checked
     //create
     try {
-      const {couponCode, expiresAt, applyableCount, limitedTime} = req.body
-      let {dscPercentage, dscAmount} = req.body
+      const {couponCode, expiresAt, applyableCount} = req.body
+      let {dscPercentage, dscAmount, limitedTime} = req.body
       dscPercentage = dscPercentage ? dscPercentage : 0
       dscAmount = dscAmount ? dscAmount : 0
+      
 
       if(!couponCode || (!dscPercentage && !dscAmount)) {
         return res.status(400)
@@ -386,10 +387,14 @@ class ProductController {
           message: "Please provide couponCode, dscPercentage or dscAmount"
         })
       }
-
+      if(expiresAt) {
+        limitedTime = true
+      }
+      const randomNumber = Math.floor(Math.random() * 100) + 1
+      const randomCoupon = couponCode + randomNumber
 
       const newCoupon = new Coupon({
-        couponCode,
+        couponCode: randomCoupon,
         dscPercentage,
         dscAmount,
         expiresAt,
