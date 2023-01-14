@@ -39,7 +39,12 @@ const userSchema = new mongoose.Schema({
         item: {
           type:  mongoose.Types.ObjectId,
           ref: 'Product'
-        }
+        },
+        couponApplied: {
+          type: Boolean,
+          default: false
+        },
+        coupon: Array
       }     
     ]
   },

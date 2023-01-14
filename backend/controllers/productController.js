@@ -10,8 +10,46 @@ class ProductController {
 //add product to cart, remove product from cart
 //add product to wishlist , remove product from wihlist
 //
+  async checkCouponCode(coupon, productPrice) {
+    const validCoupon = []
+    let discountedPrice = productPrice
+    let couponExists = await Coupon.find({$in: coupon})
+        if(!couponExists) {
+          return;
+        }
+        for(let i = 0; i < couponExists.length; i++) {
+          let currentCoupon = couponExists[i]
+          if(!currentCoupon.valid) {
+            continue;
+          } else if(currentCoupon.limitedTime && currentCoupon.expiresAt > Date.now()) {
+            continue;
+          } else if(currentCoupon.applyCount && currentCoupon.applyableCount <= 0) {
+            continue;
+          }
 
-  async createProduct(req, res, next) {
+          if(currentCoupon.dscPercentage) {
+            //deduct the percentage from the price
+            let discount = currentCoupon.dscPercentage / 100 * productPrice
+            discountedPrice -= discount
+          } else if(currentCoupon.dscAmount) {
+            //deduct amount from product price
+            let discount = currentCoupon.dscAmount
+            discountedPrice -= discount >= discountedPrice ? 0 : discount 
+          }
+          // let couponObj = {
+          //   isPercent: currentCoupon.dscPercentage ? true : false,
+          //   discount: currentCoupon.dscPercentage ? currentCoupon.dscPercentage : currentCoupon.dscAmount
+          // }
+          validCoupon.push(currentCoupon)
+        }
+        return [
+          discountedPrice,
+          validCoupon
+        ]
+  }
+
+
+  async createProduct(req, res) {
     try {
       const {productName, description, productCategory, price, quantity, model, color, weight, images, thumbnail} = req.body;
      
@@ -35,11 +73,16 @@ class ProductController {
       const product = await ProductModel.find()
       res.status(200).json(product)
     } catch (error) {
-      next(error)
+      console.log(error);
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "An error occurred"
+      })   
     }
   }
 
-  async getProductByID(req, res, next) {
+  async getProductByID(req, res) {
     try {
       const productID = req.params.id
       const product = await ProductModel.findById(productID)
@@ -48,11 +91,15 @@ class ProductController {
       }
       res.status(200).json(product)
     } catch (error) {
-      next(error)
-    }
+      console.log(error);
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "An error occurred"
+      })    }
   }
 
-  async updateProduct(req, res, next) {
+  async updateProduct(req, res) {
     try {
       const productID = req.params.id
       const {productName, description, productCategory, price, quantity, model, color, weight} = req.body;
@@ -81,8 +128,12 @@ class ProductController {
       const productToDelete = await ProductModel.findByIdAndDelete(productID)
       res.status(200).json(productToDelete)
     } catch (error) {
-      next(error)
-    }
+      console.log(error);
+      res.status(400)
+      .json({
+        status: "FAILED",
+        message: "An error occurred"
+      })    }
   }
 
   async addProductToCart(req, res) {
@@ -95,24 +146,21 @@ class ProductController {
     //spread existing array element inside new variable, add new product and quantity to the array
     //increment cart amount by the product rate * quantity
     //update user with new cart
-    //
+
+    /////////////////////
+
+        //create the coupon
+    //what does the code do - discount the price of items, date validity, rate validity
+    //reduce the price of the product
+    //apply coupon code when adding to cart
+    //during checkout, validity of coupon code is also checked
 
     try {
-      // await User.updateMany(
-      //   {},
-      //   {
-      //     $set: {
-      //       cart: {
-      //         cartTotal: 0,
-      //         cartItems: []
-      //       }
-      //     }
-      //   }
-      // )
+
       const {userId} = req.params
-      const {productId, quantity} = req.body
+      const {productId, quantity, coupon} = req.body
+      let discountedPrice, validCoupon
       const product = await ProductModel.findById(productId).select("_id isAvailable quantity price")
-      // !product.isAvailable || 
       if(product.quantity <= 0) {
         res.status(400)
         .json({
@@ -127,38 +175,48 @@ class ProductController {
         })
       }
 
-      // console.log(product);
-      const productPrice = product.price
-      const productSumTotal = productPrice * quantity
-      console.log(productSumTotal);
-      // const user = await User.findById(userId).select('_id cart')
-      // let  {cart: {cartItems: cart}} = user
-      // cart = [...cart,
-      // {
-      //   itemQuantity: quantity,
-      //   item: productId
-      // }
-      // ]
-             // $set: {
-        
-          //   "cart.cartItems.$":   {
-          //     itemQuantity: quantity,
-          //     item: productId
-          //   }
-          // },
-          // $inc: {
-          //     "cart.cartTotal": productSumTotal
-          //   }
-      // console.log(cart)
+      let productPrice = product.price
+      let productSumTotal, couponApplied
+      if(coupon && Array.isArray(coupon)) {
+        //check if cupon exists and coupon is still valid
+        //call a function for this
+        const productController = new ProductController()
+        const couponChecker = await productController.checkCouponCode(coupon, productPrice)
+        if(couponChecker) {
+          //apply coupon to product price
+           [discountedPrice, validCoupon] = couponChecker
+           productSumTotal = discountedPrice * quantity
+           productPrice = discountedPrice
+           couponApplied = true
+        } else {
+          productSumTotal = productPrice * quantity
+          validCoupon = []
+        }
+      } else {
+        productSumTotal = productPrice * quantity
+        validCoupon = []
+      }
+
+       productSumTotal = productPrice * quantity
+  
       const updateCart = await User.updateOne(
         {_id: userId},
         {
-          $push: { "cart.cartItems":   {
+          $push: { 
+            "cart.cartItems": {
             itemQuantity: quantity,
             item: productId,
-            price: productPrice
-          }, 
+            price: productPrice,
+            couponApplied,
+            $push: {
+              "cart.cartItems.coupon": {$each: validCoupon} 
+            }
+          },
+          // "cart.cartItems.coupon": {$each: validCoupon} 
         },
+          // $addToSet: {
+            
+          // },
           $inc: {
             "cart.cartTotal": productSumTotal
           } 
@@ -367,15 +425,11 @@ class ProductController {
   }
 
   async createCouponCode(req, res) {
-    //create the coupon
-    //what does the code do - discount the price of items, date validity, rate validity
-    //reduce the price of the product
-    //apply coupon code when adding to cart
-    //during checkout, validity of coupon code is also checked
-    //create
+
     try {
       const {couponCode, expiresAt, applyableCount} = req.body
-      let {dscPercentage, dscAmount, limitedTime} = req.body
+      let {dscPercentage, dscAmount} = req.body
+      let applyCount, limitedTime;
       dscPercentage = dscPercentage ? dscPercentage : 0
       dscAmount = dscAmount ? dscAmount : 0
       
@@ -390,6 +444,9 @@ class ProductController {
       if(expiresAt) {
         limitedTime = true
       }
+      if(applyableCount) {
+        applyCount = true
+      }
       const randomNumber = Math.floor(Math.random() * 100) + 1
       const randomCoupon = couponCode + randomNumber
 
@@ -399,7 +456,8 @@ class ProductController {
         dscAmount,
         expiresAt,
         applyableCount,
-        limitedTime
+        limitedTime,
+        applyCount
       })
 
       newCoupon.save()

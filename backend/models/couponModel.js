@@ -12,6 +12,10 @@ const couponSchema = mongoose.Schema(
       type: Boolean,
       default: false
     },
+    applyCount: {
+      type: Boolean,
+      default: false
+    },
     applyableCount: {
       type: Number
     },
