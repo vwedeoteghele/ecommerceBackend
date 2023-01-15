@@ -13,7 +13,7 @@ class ProductController {
   async checkCouponCode(coupon, productPrice) {
     const validCoupon = []
     let discountedPrice = productPrice
-    let couponExists = await Coupon.find({$in: coupon})
+    let couponExists = await Coupon.find({couponCode: {$in: coupon}})
         if(!couponExists) {
           return;
         }
@@ -21,7 +21,7 @@ class ProductController {
           let currentCoupon = couponExists[i]
           if(!currentCoupon.valid) {
             continue;
-          } else if(currentCoupon.limitedTime && currentCoupon.expiresAt > Date.now()) {
+          } else if(currentCoupon.limitedTime && currentCoupon.expiresAt < Date.now()) {
             continue;
           } else if(currentCoupon.applyCount && currentCoupon.applyableCount <= 0) {
             continue;
@@ -36,11 +36,7 @@ class ProductController {
             let discount = currentCoupon.dscAmount
             discountedPrice -= discount >= discountedPrice ? 0 : discount 
           }
-          // let couponObj = {
-          //   isPercent: currentCoupon.dscPercentage ? true : false,
-          //   discount: currentCoupon.dscPercentage ? currentCoupon.dscPercentage : currentCoupon.dscAmount
-          // }
-          validCoupon.push(currentCoupon)
+          validCoupon.push(currentCoupon._id)
         }
         return [
           discountedPrice,
@@ -197,8 +193,6 @@ class ProductController {
         validCoupon = []
       }
 
-       productSumTotal = productPrice * quantity
-  
       const updateCart = await User.updateOne(
         {_id: userId},
         {
@@ -208,15 +202,9 @@ class ProductController {
             item: productId,
             price: productPrice,
             couponApplied,
-            $push: {
-              "cart.cartItems.coupon": {$each: validCoupon} 
-            }
+            coupon: [...validCoupon]
           },
-          // "cart.cartItems.coupon": {$each: validCoupon} 
         },
-          // $addToSet: {
-            
-          // },
           $inc: {
             "cart.cartTotal": productSumTotal
           } 
@@ -224,7 +212,6 @@ class ProductController {
       )
       const userCart = await User.findById(userId)
       const {cart: newCart} = userCart
-        console.log(updateCart)
         res.status(201).json({
           status: "SUCCESS",
           message: "Cart all updated successfully",
