@@ -143,12 +143,7 @@ class ProductController {
     //increment cart amount by the product rate * quantity
     //update user with new cart
 
-    /////////////////////
 
-        //create the coupon
-    //what does the code do - discount the price of items, date validity, rate validity
-    //reduce the price of the product
-    //apply coupon code when adding to cart
     //during checkout, validity of coupon code is also checked
 
     try {
