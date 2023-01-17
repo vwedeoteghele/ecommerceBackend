@@ -141,7 +141,6 @@ class ProductController {
     //check if the product is available and amount is >=  product remaining in stock
     //spread existing array element inside new variable, add new product and quantity to the array
     //increment cart amount by the product rate * quantity
-    //update user with new cart
 
 
     //during checkout, validity of coupon code is also checked
